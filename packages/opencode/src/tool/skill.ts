@@ -6,7 +6,7 @@ import { ConfigMarkdown } from "../config/markdown"
 import { PermissionNext } from "../permission/next"
 
 export const SkillTool = Tool.define("skill", async (ctx) => {
-  const skills = await Skill.all()
+  const skills = await Skill.all(ctx?.sessionID)
 
   // Filter skills by agent permissions if agent provided
   const agent = ctx?.agent
@@ -49,10 +49,10 @@ export const SkillTool = Tool.define("skill", async (ctx) => {
     description,
     parameters,
     async execute(params: z.infer<typeof parameters>, ctx) {
-      const skill = await Skill.get(params.name)
+      const skill = await Skill.get(params.name, ctx.sessionID)
 
       if (!skill) {
-        const available = await Skill.all().then((x) => Object.keys(x).join(", "))
+        const available = await Skill.all(ctx.sessionID).then((x) => x.map((s) => s.name).join(", "))
         throw new Error(`Skill "${params.name}" not found. Available skills: ${available || "none"}`)
       }
 
@@ -62,12 +62,25 @@ export const SkillTool = Tool.define("skill", async (ctx) => {
         always: [params.name],
         metadata: {},
       })
-      // Load and parse skill content
-      const parsed = await ConfigMarkdown.parse(skill.location)
-      const dir = path.dirname(skill.location)
+
+      // Load skill content
+      let content: string
+      if (skill.content) {
+        // Inline content from HTTP API
+        content = skill.content
+      } else {
+        // Load from filesystem
+        const parsed = await ConfigMarkdown.parse(skill.location)
+        content = parsed.content.trim()
+      }
+
+      const dir =
+        skill.location.startsWith("http://") || skill.location.startsWith("https://")
+          ? "N/A (remote skill)"
+          : path.dirname(skill.location)
 
       // Format output similar to plugin pattern
-      const output = [`## Skill: ${skill.name}`, "", `**Base directory**: ${dir}`, "", parsed.content.trim()].join("\n")
+      const output = [`## Skill: ${skill.name}`, "", `**Base directory**: ${dir}`, "", content].join("\n")
 
       return {
         title: `Loaded skill: ${skill.name}`,

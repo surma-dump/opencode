@@ -1044,6 +1044,36 @@ export namespace Config {
           prune: z.boolean().optional().describe("Enable pruning of old tool outputs (default: true)"),
         })
         .optional(),
+      skill_discovery: z
+        .object({
+          enabled: z.boolean().describe("Enable HTTP-based skill discovery"),
+          endpoint: z.string().url().describe("HTTP API endpoint for skill discovery"),
+          description_prompt: z
+            .string()
+            .optional()
+            .describe(
+              "Prompt template for generating task descriptions. " +
+                "Use {conversation} placeholder. " +
+                "Default: 'Based on the conversation history, describe the current task in 1-2 sentences.'",
+            ),
+          cache_ttl: z
+            .number()
+            .optional()
+            .default(300000)
+            .describe("Cache duration in milliseconds (default: 5 minutes)"),
+          headers: z
+            .record(z.string(), z.string())
+            .optional()
+            .describe("HTTP headers (supports {env:VAR} substitution)"),
+          timeout: z.number().optional().default(5000).describe("Request timeout in milliseconds (default: 5 seconds)"),
+          fallback_to_filesystem: z
+            .boolean()
+            .optional()
+            .default(false)
+            .describe("Fall back to filesystem discovery on HTTP errors"),
+        })
+        .optional()
+        .describe("Dynamic skill discovery via HTTP API, see SKILL_SERVER.md"),
       experimental: z
         .object({
           hook: z

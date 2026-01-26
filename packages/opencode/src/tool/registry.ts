@@ -11,6 +11,7 @@ import { WebFetchTool } from "./webfetch"
 import { WriteTool } from "./write"
 import { InvalidTool } from "./invalid"
 import { SkillTool } from "./skill"
+import { UpdateSkillContextTool } from "./update-skill-context"
 import type { Agent } from "../agent/agent"
 import { Tool } from "./tool"
 import { Instance } from "../project/instance"
@@ -109,6 +110,7 @@ export namespace ToolRegistry {
       WebSearchTool,
       CodeSearchTool,
       SkillTool,
+      ...(config.skill_discovery?.enabled ? [UpdateSkillContextTool] : []),
       ApplyPatchTool,
       ...(Flag.OPENCODE_EXPERIMENTAL_LSP_TOOL ? [LspTool] : []),
       ...(config.experimental?.batch_tool === true ? [BatchTool] : []),
@@ -127,6 +129,7 @@ export namespace ToolRegistry {
       modelID: string
     },
     agent?: Agent.Info,
+    sessionID?: string,
   ) {
     const tools = await all()
     const result = await Promise.all(
@@ -149,7 +152,7 @@ export namespace ToolRegistry {
           using _ = log.time(t.id)
           return {
             id: t.id,
-            ...(await t.init({ agent })),
+            ...(await t.init({ agent, sessionID })),
           }
         }),
     )

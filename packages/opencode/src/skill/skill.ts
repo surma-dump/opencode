@@ -17,6 +17,7 @@ export namespace Skill {
     name: z.string(),
     description: z.string(),
     location: z.string(),
+    content: z.string().optional(),
   })
   export type Info = z.infer<typeof Info>
 
@@ -125,11 +126,31 @@ export namespace Skill {
     return skills
   })
 
-  export async function get(name: string) {
+  export async function get(name: string, sessionID?: string) {
+    // Check for session-specific skills first
+    if (sessionID) {
+      const { SessionSkills } = await import("./session-skills")
+      const sessionSkills = await SessionSkills.get(sessionID)
+      if (sessionSkills !== undefined) {
+        return sessionSkills[name]
+      }
+    }
+
+    // Fall back to global filesystem-based skills
     return state().then((x) => x[name])
   }
 
-  export async function all() {
+  export async function all(sessionID?: string) {
+    // Check for session-specific skills first
+    if (sessionID) {
+      const { SessionSkills } = await import("./session-skills")
+      const sessionSkills = await SessionSkills.get(sessionID)
+      if (sessionSkills !== undefined) {
+        return Object.values(sessionSkills)
+      }
+    }
+
+    // Fall back to global filesystem-based skills
     return state().then((x) => Object.values(x))
   }
 }

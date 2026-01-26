@@ -656,6 +656,11 @@ export namespace SessionPrompt {
     messages: MessageV2.WithParts[]
   }) {
     using _ = log.time("resolveTools")
+
+    // Ensure session-specific skills are discovered
+    const { SessionSkills } = await import("../skill/session-skills")
+    await SessionSkills.ensure(input.session.id, input.messages)
+
     const tools: Record<string, AITool> = {}
 
     const context = (args: any, options: ToolCallOptions): Tool.Context => ({
@@ -696,6 +701,7 @@ export namespace SessionPrompt {
     for (const item of await ToolRegistry.tools(
       { modelID: input.model.api.id, providerID: input.model.providerID },
       input.agent,
+      input.session.id,
     )) {
       const schema = ProviderTransform.schema(input.model, z.toJSONSchema(item.parameters))
       tools[item.id] = tool({
